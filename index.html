@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S.O.I.L. Explorer - Géologie</title>
+    <style>
+        :root {
+            --terre: #1c1714;
+            --argile: #4b3d33;
+            --sable: #d4a373;
+            --roche: #5a5a5a;
+            --feuille: #606c38;
+            --limon: #8a7e72;
+            --texte: #faedcd;
+            --accent: #bc6c25;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+
+        body {
+            background: radial-gradient(circle, #3d3028 0%, var(--terre) 100%);
+            color: var(--texte);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- ÉCRAN DE CONNEXION --- */
+        #login-screen {
+            position: fixed; inset: 0;
+            background: url('https://www.transparenttextures.com/patterns/dark-matter.png'), var(--terre);
+            z-index: 1000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .login-box {
+            background: rgba(75, 61, 51, 0.4);
+            backdrop-filter: blur(15px);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid var(--argile);
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        }
+
+        .login-box h2 { color: var(--sable); margin-bottom: 20px; letter-spacing: 2px; }
+
+        /* --- INTERFACE PRINCIPALE --- */
+        #app-container {
+            display: grid; grid-template-columns: 320px 1fr;
+            width: 95vw; height: 90vh;
+            background: rgba(46, 36, 30, 0.5);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--argile);
+            border-radius: 20px;
+            overflow: hidden;
+            opacity: 0; transform: scale(0.95);
+            transition: 0.8s;
+        }
+
+        .sidebar {
+            background: rgba(28, 23, 20, 0.9);
+            border-right: 2px solid var(--argile);
+            padding: 30px 20px;
+            display: flex; flex-direction: column; gap: 15px;
+        }
+
+        .horizon-btn {
+            background: var(--argile); border: 2px solid transparent;
+            border-radius: 12px; padding: 15px; cursor: pointer;
+            transition: 0.3s; display: flex; align-items: center; gap: 15px;
+        }
+
+        .layer-color {
+            width: 15px;
+            height: 35px;
+            border-radius: 4px;
+        }
+        .color-o { background: #3a2d20; border: 1px solid var(--sable); }
+        .color-a { background: #5d4d42; }
+        .color-b { background: #8c5a3c; }
+        .color-c { background: #a68d7a; }
+        .color-r { background: #5a5a5a; }
+
+        .horizon-btn:hover { background: #5d4d42; transform: translateX(8px); }
+        .horizon-btn.active { border-color: var(--sable); background: #5d4d42; }
+
+        .main-content { padding: 50px; position: relative; }
+
+        /* --- MISSIONS & INDICES --- */
+        .mission-card {
+            background: rgba(20, 16, 14, 0.8);
+            border-left: 5px solid var(--sable);
+            padding: 30px; border-radius: 12px; margin-top: 30px;
+        }
+
+        .hint-box {
+            margin-top: 15px; padding: 12px;
+            background: rgba(188, 108, 37, 0.1);
+            border: 1px dashed var(--accent);
+            border-radius: 8px; font-size: 0.9rem;
+            display: none; color: var(--sable);
+        }
+
+        .btn-hint {
+            background: transparent; border: 1px solid var(--accent);
+            color: var(--accent); font-size: 0.8rem; padding: 5px 10px;
+            margin-top: 10px; cursor: pointer; border-radius: 5px;
+        }
+
+        .input-group { display: flex; gap: 10px; margin-top: 20px; }
+        input {
+            background: #120e0c; border: 2px solid var(--argile);
+            color: white; padding: 12px; border-radius: 8px; outline: none; flex: 1;
+        }
+
+        button.primary {
+            background: var(--sable); color: var(--terre);
+            border: none; padding: 12px 25px; border-radius: 8px;
+            font-weight: bold; cursor: pointer;
+        }
+
+        #success-screen {
+            position: absolute; inset: 0; background: var(--feuille);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; transition: 0.5s; z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ÉCRAN DE VERROUILLAGE (LOGIN) -->
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>ACCÈS SÉCURISÉ</h2>
+            <p style="margin-bottom: 15px; color: var(--sable);">Identifiez-vous pour accéder aux données</p>
+            <input type="password" id="pass-input" placeholder="Code d'accès..." autofocus>
+            <button class="primary" style="margin-top: 15px; width: 100%;" onclick="checkLogin()">ENTRER</button>
+        </div>
+    </div>
+
+    <!-- INTERFACE PRINCIPALE -->
+    <div id="app-container">
+        <div class="sidebar">
+            <h2 style="font-size: 1.2rem;">S.O.I.L. <span style="color:var(--sable)">OS</span></h2>
+            
+            <div class="horizon-btn" id="btn-O" onclick="loadHorizon('O')">
+                <div class="layer-color color-o"></div>
+                <div><strong>HORIZON O</strong><br><small>Surface</small></div>
+            </div>
+            <div class="horizon-btn" id="btn-A" onclick="loadHorizon('A')">
+                <div class="layer-color color-a"></div>
+                <div><strong>HORIZON A</strong><br><small>Terre Arable</small></div>
+            </div>
+            <div class="horizon-btn" id="btn-B" onclick="loadHorizon('B')">
+                <div class="layer-color color-b"></div>
+                <div><strong>HORIZON B</strong><br><small>Accumulation</small></div>
+            </div>
+            <div class="horizon-btn" id="btn-C" onclick="loadHorizon('C')">
+                <div class="layer-color color-c"></div>
+                <div><strong>HORIZON C</strong><br><small>Roche Fragmentée</small></div>
+            </div>
+            <div class="horizon-btn" id="btn-R" onclick="loadHorizon('R')">
+                <div class="layer-color color-r"></div>
+                <div><strong>HORIZON R</strong><br><small>Roche Mère</small></div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div id="display-area">
+                <div class="title-area">
+                    <h1 style="color: var(--argile);">PRÊT POUR L'ANALYSE</h1>
+                    <p>Sélectionnez un horizon géologique pour débuter l'extraction des données et valider les textures.</p>
+                </div>
+            </div>
+
+            <!-- ÉCRAN DE VICTOIRE -->
+            <div id="success-screen">
+                <h1 style="font-size: 3.5rem;">MISSION TERMINÉE🌿</h1>
+                <p style="font-size: 1.2rem;">Toutes les strates ont été analysées. Le profil est complet.</p>
+                <button class="primary" style="margin-top: 20px;" onclick="location.reload()">REDÉMARRER</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* =========================================================
+           CONFIGURATION ET DONNÉES SCIENTIFIQUES
+           ========================================================= */
+        
+        const ACCESS_CODE = "SEDIMENT"; // Ton code secret
+
+        const SOIL_DATA = {
+            'O': {
+                title: "HORIZON O (Matière organique)",
+                desc: "Couche de surface composée de litière et d'humus. Elle est riche en nutriments grâce au travail des décomposeurs.",
+                question: "Quel nom porte la matière organique décomposée qui donne sa couleur noire au sol ?",
+                answer: ["humus"],
+                hint: "Indice : C'est le 'carburant' naturel des plantes, très riche en carbone.",
+                completed: false
+            },
+            'A': {
+                title: "HORIZON A (Terre arable)",
+                desc: "Un mélange de minéraux et d'humus. C'est ici que l'on retrouve souvent un **sol limoneux**, qui est un équilibre parfait entre le sable et l'argile, idéal pour l'agriculture.",
+                question: "Comment appelle-t-on le sol composé de particules de taille moyenne, entre le sable et l'argile ?",
+                answer: ["limoneux", "limon"],
+                hint: "Indice : On dit qu'un sol est ____ lorsqu'il contient beaucoup de limon.",
+                completed: false
+            },
+            'B': {
+                title: "HORIZON B (Sous-sol / Accumulation) ",
+                desc: "Cette couche, appelée sous-sol, reçoit les minéraux et l'argile qui descendent avec la pluie.",
+                question: "Quelle texture de sol est formée de particules très fines et devient très malléable (comme de la pâte à modeler) lorsqu'elle est mouillée ?",
+                answer: ["argile", "argileux"],
+                hint: "Indice : C'est la matière utilisée pour faire de la poterie.",
+                completed: false
+            },
+            'C': {
+                title: "HORIZON C (Roche altérée) ",
+                desc: "Ici, la roche massive se transforme en cailloux et en sable sous l'effet du climat.",
+                goal: "Objectif : Voir comment la pierre devient poussière.",
+                question: "Le passage de la roche solide à l'horizon C se fait par un processus appelé l'_____ ?",
+                answer: ["altération", "alteration"],
+                hint: "Indice : C'est le synonyme de 'dégradation' ou 'usure' de la roche par la météo. (Mots croisés : A _ _ _ _ _ _ _ _ N)",
+                completed: false
+            },
+            'R': {
+                title: "HORIZON R (Roche mère)",
+                desc: "Le socle rocheux massif et non altéré. C'est la base de tout le profil pédologique.",
+                question: "Vrai ou Faux : L'horizon R est le résultat de la décomposition des plantes.",
+                answer: ["faux"],
+                hint: "Indice : Réfléchis, la roche mère est de la pierre solide, pas du compost !",
+                completed: false
+            }
+        };
+
+        /* =========================================================
+               SYSTÈME DE NAVIGATION ET LOGIQUE DE MISSION
+               ========================================================= */
+
+            // 1. Vérification du code d'accès
+            function checkLogin() {
+                const input = document.getElementById('pass-input').value.toUpperCase();
+                const screen = document.getElementById('login-screen');
+                const app = document.getElementById('app-container');
+
+                if (input === ACCESS_CODE) {
+                    screen.style.opacity = "0";
+                    setTimeout(() => {
+                        screen.style.display = "none";
+                        app.style.opacity = "1";
+                        app.style.transform = "scale(1)";
+                    }, 800);
+                } else {
+                    const box = document.querySelector('.login-box');
+                    box.style.animation = "shake 0.4s";
+                    document.getElementById('pass-input').value = "";
+                    document.getElementById('pass-input').placeholder = "CODE INVALIDE";
+                    setTimeout(() => { box.style.animation = ""; }, 400);
+                }
+            }
+
+            // 2. Chargement d'un horizon
+            function loadHorizon(id) {
+                currentHorizon = id;
+                const data = SOIL_DATA[id];
+
+                // UI : Activer le bouton
+                document.querySelectorAll('.horizon-btn').forEach(btn => btn.classList.remove('active'));
+                document.getElementById('btn-' + id).classList.add('active');
+
+                const displayArea = document.getElementById('display-area');
+                
+                // Construction du contenu
+                let contentHTML = `
+                    <div class="title-area">
+                        <span class="status-badge">${data.completed ? "✓ ANALYSÉ" : "STATUT : EN ATTENTE"}</span>
+                        <h1>${data.title}</h1>
+                        <p>${data.desc}</p>
+                    </div>
+                `;
+
+                if (!data.completed) {
+                    contentHTML += `
+                        <div class="mission-card">
+                            <h3>ANALYSE REQUISE</h3>
+                            <p>${data.question}</p>
+                            
+                            <button class="btn-hint" onclick="toggleHint()">Besoin d'un indice ?</button>
+                            <div id="hint-text" class="hint-box">${data.hint}</div>
+
+                            <div class="input-group">
+                                <input type="text" id="answer-box" placeholder="Entrez la réponse..." onkeypress="handleEnter(event)">
+                                <button class="primary" onclick="verifyData()">VALIDER</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    contentHTML += `
+                        <div class="mission-card" style="border-color: var(--feuille);">
+                            <h3 style="color: var(--feuille);">DONNÉES EXTRAITES</h3>
+                            <p>Les caractéristiques de cet horizon ont été archivées. Passez à la couche suivante.</p>
+                        </div>
+                    `;
+                }
+
+                displayArea.innerHTML = contentHTML;
+                if(document.getElementById('answer-box')) document.getElementById('answer-box').focus();
+            }
+
+            // 3. Gestion des indices
+            function toggleHint() {
+                const hint = document.getElementById('hint-text');
+                hint.style.display = (hint.style.display === 'block') ? 'none' : 'block';
+            }
+
+            // 4. Vérification de la réponse
+            function verifyData() {
+                const input = document.getElementById('answer-box').value.toLowerCase().trim();
+                const data = SOIL_DATA[currentHorizon];
+
+                if (data.answer.some(ans => input.includes(ans))) {
+                    data.completed = true;
+                    document.getElementById('btn-' + currentHorizon).style.background = "var(--feuille)";
+                    loadHorizon(currentHorizon);
+                    checkVictory();
+                } else {
+                    const inputField = document.getElementById('answer-box');
+                    inputField.style.borderColor = "#9d0208";
+                    setTimeout(() => { inputField.style.borderColor = "var(--argile)"; }, 1000);
+                }
+            }
+
+            function handleEnter(e) { if (e.key === 'Enter') verifyData(); }
+
+            // 5. Vérification finale
+            function checkVictory() {
+                const allDone = Object.values(SOIL_DATA).every(h => h.completed);
+                if (allDone) {
+                    const displayArea = document.getElementById('display-area');
+                    
+                    // On crée une zone de conclusion avant le "Success Screen"
+                    const finalStepHTML = `
+                        <div class="mission-card" style="border-top: 5px solid var(--feuille); background: rgba(96, 108, 56, 0.2);">
+                            <h2 style="color: var(--sable);">🏁 ANALYSE GLOBALE DISPONIBLE</h2>
+                            <p style="margin: 15px 0;">Tous les horizons ont été validés. Vous avez maintenant une vision complète du sol.</p>
+                            <button class="primary" onclick="showFinalSummary()">GÉNÉRER LE RAPPORT FINAL</button>
+                        </div>
+                    `;
+                    displayArea.innerHTML += finalStepHTML;
+                }
+            }
+
+            function showFinalSummary() {
+                const displayArea = document.getElementById('display-area');
+                
+                displayArea.innerHTML = `
+                    <div class="title-area">
+                        <h1>RAPPORT DE SYNTHÈSE 📋</h1>
+                        <p>Voici ce que nous avons appris sur ce terrain :</p>
+                    </div>
+                    <div class="mission-card">
+                        <ul style="list-style: none; line-height: 1.8;">
+                            <li>🌿 <strong>Fertilité :</strong> Présence d'humus confirmée en surface.</li>
+                            <li>💧 <strong>Drainage :</strong> Risque d'accumulation d'eau dû à l'argile en profondeur.</li>
+                            <li>🏗️ <strong>Stabilité :</strong> Socle rocheux solide atteint via l'horizon R.</li>
+                        </ul>
+                        <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--argile);">
+                        <p><em>"Un sol en santé est un équilibre parfait entre le monde minéral et le monde vivant."</em></p>
+                        <button class="primary" style="margin-top: 20px; width: 100%;" onclick="triggerFinalWin()">ARCHIVER ET QUITTER 💾</button>
+                    </div>
+                `;
+            }
+
+            function triggerFinalWin() {
+                document.getElementById('success-screen').style.opacity = "1";
+                document.getElementById('success-screen').style.visibility = "visible";
+            }
+
+            // Animation d'erreur pour le login
+            const style = document.createElement('style');
+            style.innerHTML = "@keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-10px);} 75% {transform: translateX(10px);} }";
+            document.head.appendChild(style);
+
+    </script>
+
+</body>
+</html>
